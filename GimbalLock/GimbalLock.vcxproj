@@ -143,6 +143,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Shader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\FragmentShaderForObject.glsl" />
+    <None Include="Shaders\VertexShaderForObject.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="OpenCVLinker.h" />
+    <ClInclude Include="OpenGLLinker.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="_Common.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
