@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.757
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GimbalLock", "GimbalLock\GimbalLock.vcxproj", "{892CC034-906B-402D-A6D7-652A5B06CADE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Debug|x64.ActiveCfg = Debug|x64
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Debug|x64.Build.0 = Debug|x64
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Debug|x86.ActiveCfg = Debug|Win32
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Debug|x86.Build.0 = Debug|Win32
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Release|x64.ActiveCfg = Release|x64
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Release|x64.Build.0 = Release|x64
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Release|x86.ActiveCfg = Release|Win32
+		{892CC034-906B-402D-A6D7-652A5B06CADE}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DA8C36BB-2BE7-48AE-97C9-783DB4F3A699}
+	EndGlobalSection
+EndGlobal
