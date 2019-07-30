@@ -22,6 +22,6 @@ The rotation from Euler Angle causes the *Gimbal Lock* problem.
 ## Keyboard Commands
   * **l key**: toggle light effects
   * **c key**: capture the current frame
-  * **s key**: play the animation (*only if 5 frames are captured*)
+  * **e key**: play the animation (*only if 5 frames are captured*)
   * **r key**: reset the animation
   * **q key**: exit
