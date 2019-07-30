@@ -2,8 +2,8 @@
 
 RendererGL* RendererGL::Renderer = nullptr;
 RendererGL::RendererGL() : 
-   Window( nullptr ), AnimationMode( false ), ClickedPoint( -1, -1 ), CapturedFrameIndex( 0 ),
-   CapturedEulerAngles( 5 ), CapturedQuaternions( 5 ), EulerAngle( 0.0f, 0.0f, 0.0f )
+   Window( nullptr ), ClickedPoint( -1, -1 ), CapturedFrameIndex( 0 ), CapturedEulerAngles( 5 ), 
+   CapturedQuaternions( 5 ), EulerAngle( 0.0f, 0.0f, 0.0f )
 {
    Renderer = this;
 
@@ -40,7 +40,7 @@ void RendererGL::initialize()
 
    const int width = 1920;
    const int height = 1080;
-   Window = glfwCreateWindow( width, height, "Main Camera", nullptr, nullptr );
+   Window = glfwCreateWindow( width, height, "Euler Angle (Blue) VS. Quaternion (Red)", nullptr, nullptr );
    glfwMakeContextCurrent( Window );
    glewInit();
    
@@ -100,10 +100,17 @@ void RendererGL::keyboard(GLFWwindow* window, int key, int scancode, int action,
          captureFrame();
          break;
       case GLFW_KEY_E:
-         if (CapturedFrameIndex == CapturedEulerAngles.size()) AnimationMode = true;
+         if (!Animator.AnimationMode && CapturedFrameIndex == CapturedEulerAngles.size()) {
+            Animator.StartTiming = glfwGetTime() * 1000.0;
+            Animator.AnimationMode = true;
+         }
          break;
-      case GLFW_KEY_S:
-         if (CapturedFrameIndex == CapturedEulerAngles.size()) AnimationMode = true;
+      case GLFW_KEY_R:
+         CapturedFrameIndex = 0;
+         CapturedEulerAngles.clear();
+         CapturedQuaternions.clear();
+         CapturedEulerAngles.resize( 5 );
+         CapturedQuaternions.resize( 5 );
          break;
       case GLFW_KEY_L:
          Lights.toggleLightSwitch();
@@ -136,12 +143,12 @@ void RendererGL::cursor(GLFWwindow* window, double xpos, double ypos)
       const int dy = y - ClickedPoint.y;
 
       if (glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS) {
-         EulerAngle.y += static_cast<float>(dx);
+         EulerAngle.y += static_cast<float>(dx) * 0.01f;
          if (EulerAngle.y >= 360.0f) EulerAngle.y -= 360.0f;
       }
 
       if (glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS) {
-         EulerAngle.x += static_cast<float>(-dy);
+         EulerAngle.x += static_cast<float>(dy) * 0.01f;
          if (EulerAngle.x >= 360.0f) EulerAngle.x -= 360.0f;
       }
 
@@ -330,12 +337,13 @@ void RendererGL::displayEulerAngleMode()
    glViewport( 0, 216, 980, 864 );
    drawAxisObject( 15.0f );
 
-   mat4 to_world;
-   if (AnimationMode) {
-      //mat4 rotation = orientate4( EulerAngles.x, EulerAngles.y, EulerAngles.z );
-      
+   if (Animator.AnimationMode) {
+      const uint curr = Animator.CurrentFrameIndex;
+      const uint next = (Animator.CurrentFrameIndex + 1) % CapturedEulerAngles.size();
+      const auto t = static_cast<float>(Animator.ElapsedTime / Animator.TimePerSection - curr);
+      EulerAngle = (1 - t) * CapturedEulerAngles[curr] + t * CapturedEulerAngles[next];
    }
-   else to_world = orientate4( EulerAngle );
+   const mat4 to_world = orientate4( EulerAngle );
 
    TeapotObject.setDiffuseReflectionColor( { 0.0f, 0.47f, 0.75f, 1.0f } );
    drawTeapotObject( to_world );
@@ -347,8 +355,11 @@ void RendererGL::displayQuaternionMode()
    drawAxisObject( 15.0f );
 
    mat4 to_world;
-   if (AnimationMode) {
-      //mat4 rotation = toMat4( CapturedQuaternions[CapturedFrameIndex] );
+   if (Animator.AnimationMode) {
+      const uint curr = Animator.CurrentFrameIndex;
+      const uint next = (Animator.CurrentFrameIndex + 1) % CapturedQuaternions.size();
+      const auto t = static_cast<float>(Animator.ElapsedTime / Animator.TimePerSection - curr);
+      to_world = toMat4( slerp( CapturedQuaternions[curr], CapturedQuaternions[next], t ) );
    }
    else to_world = orientate4( EulerAngle );
 
@@ -363,7 +374,10 @@ void RendererGL::displayCapturedFrames()
       drawAxisObject( 15.0f );
 
       if (i < CapturedFrameIndex) {
-         TeapotObject.setDiffuseReflectionColor( { 0.7f, 0.7f, 1.0f, 1.0f } );
+         if (Animator.AnimationMode && i == Animator.CurrentFrameIndex) {
+            TeapotObject.setDiffuseReflectionColor( { 1.0f, 0.7f, 0.0f, 1.0f } );
+         }
+         else TeapotObject.setDiffuseReflectionColor( { 0.7f, 0.7f, 1.0f, 1.0f } );
 
          mat4 to_world = toMat4( CapturedQuaternions[i] );
          drawTeapotObject( to_world );
@@ -383,6 +397,20 @@ void RendererGL::render()
    glUseProgram( 0 );
 }
 
+void RendererGL::update()
+{
+   if (Animator.AnimationMode) {
+      const double now = glfwGetTime() * 1000.0;
+      Animator.ElapsedTime = now - Animator.StartTiming;
+      if (Animator.ElapsedTime >= Animator.AnimationDuration) {
+         Animator.StartTiming = now;
+         Animator.ElapsedTime = 0.0;
+      }
+
+      Animator.CurrentFrameIndex = static_cast<int>(floor( Animator.ElapsedTime / Animator.TimePerSection ));
+   }
+}
+
 void RendererGL::play()
 {
    if (glfwWindowShouldClose( Window )) initialize();
@@ -391,8 +419,11 @@ void RendererGL::play()
    setAxisObject();
    setTeapotObject();
    ObjectShader.setUniformLocations( Lights.TotalLightNum );
-   
+
+   Animator.TimePerSection = Animator.AnimationDuration / CapturedEulerAngles.size();
+
    while (!glfwWindowShouldClose( Window )) {
+      update();
       render();
       
       glfwPollEvents();

@@ -16,16 +16,28 @@
 
 class RendererGL
 {
+   struct Animation
+   {
+      bool AnimationMode;
+      double AnimationDuration;
+      double TimePerSection;
+      double StartTiming;
+      double ElapsedTime;
+      uint CurrentFrameIndex;
+      Animation() : AnimationMode( false ), AnimationDuration( 10000.0 ), TimePerSection( 0.0 ),
+      StartTiming( 0.0 ), ElapsedTime( 0.0 ), CurrentFrameIndex( 0 ) {}
+   };
+
    static RendererGL* Renderer;
    GLFWwindow* Window;
 
-   bool AnimationMode;
    ivec2 ClickedPoint;
 
    uint CapturedFrameIndex;
    vector<vec3> CapturedEulerAngles;
    vector<quat> CapturedQuaternions;
    vec3 EulerAngle;
+   Animation Animator;
 
    CameraGL MainCamera;
    ShaderGL ObjectShader;
@@ -63,6 +75,7 @@ class RendererGL
    void displayEulerAngleMode();
    void displayQuaternionMode();
    void displayCapturedFrames();
+   void update();
    void render();
 
 
