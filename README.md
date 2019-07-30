@@ -1,6 +1,6 @@
 # GimbalLock
 
-This is a comparision between Euler Angle and Quaternion.  
+This is a comparision between Euler Angle(left) and Quaternion(right).  
 The rotation from Euler Angle causes the *Gimbal Lock* problem.
 
 
