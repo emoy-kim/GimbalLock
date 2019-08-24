@@ -168,29 +168,25 @@ void ObjectGL::prepareTexture2DFromMat(const Mat& texture) const
    // OpenGL texture's origin is bottom-left, but OpenCV Mat's is top-left.
    const int width = texture.cols;
    const int height = texture.rows;
-   glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, texture.data );
+   glTextureStorage2D( TextureID, 1, GL_RGBA8, width, height );
+   glTextureSubImage2D( TextureID, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, texture.data );
 }
 
-void ObjectGL::prepareTexture(
-   const int& n_bytes_per_vertex, 
-   const Mat& texture, 
-   const bool& normals_exist
-)
+void ObjectGL::prepareTexture(const Mat& texture, const bool& normals_exist)
 {
-   glGenTextures( 1, &TextureID );
-   glActiveTexture( GL_TEXTURE0 + TextureID );
-   glBindTexture( GL_TEXTURE_2D, TextureID );
+   glCreateTextures( GL_TEXTURE_2D, 1, &TextureID );
    
    prepareTexture2DFromMat( texture );
-   
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
    const uint offset = normals_exist ? 6 : 3;
-   glVertexAttribPointer( TextureLoc, 2, GL_FLOAT, GL_FALSE, n_bytes_per_vertex, bufferOffset( offset * sizeof(GLfloat) ) );
-   glEnableVertexAttribArray( TextureLoc );
+   glVertexArrayAttribFormat( ObjVAO, TextureLoc, 2, GL_FLOAT, GL_FALSE, offset * sizeof(GLfloat) );
+   glVertexArrayAttribBinding( ObjVAO, TextureLoc, 0 );
+   glEnableVertexArrayAttrib( ObjVAO, TextureLoc );
 }
 
 void ObjectGL::prepareTexture2DFromFile(const string& file_name) const
@@ -212,7 +208,8 @@ void ObjectGL::prepareTexture2DFromFile(const string& file_name) const
    const uint width = FreeImage_GetWidth( texture_32bit );
    const uint height = FreeImage_GetHeight( texture_32bit );
    GLvoid* data = FreeImage_GetBits( texture_32bit );
-   glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data );
+   glTextureStorage2D( TextureID, 1, GL_RGBA8, width, height );
+   glTextureSubImage2D( TextureID, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data );
    cout << " * Loaded " << width << " x " << height << " RGBA texture into graphics memory." << endl << endl;
 
    FreeImage_Unload( texture_32bit );
@@ -221,49 +218,40 @@ void ObjectGL::prepareTexture2DFromFile(const string& file_name) const
    }
 }
 
-void ObjectGL::prepareTexture(
-   const int& n_bytes_per_vertex, 
-   const string& texture_file_name, 
-   const bool& normals_exist
-)
+void ObjectGL::prepareTexture(const string& texture_file_name, const bool& normals_exist)
 {
-   glGenTextures( 1, &TextureID );
-   glActiveTexture( GL_TEXTURE0 + TextureID );
-   glBindTexture( GL_TEXTURE_2D, TextureID );
+   glCreateTextures( GL_TEXTURE_2D, 1, &TextureID );
    
    prepareTexture2DFromFile( texture_file_name );
    
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+   glTextureParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
    const uint offset = normals_exist ? 6 : 3;
-   glVertexAttribPointer( TextureLoc, 2, GL_FLOAT, GL_FALSE, n_bytes_per_vertex, bufferOffset( offset * sizeof(GLfloat) ) );
-   glEnableVertexAttribArray( TextureLoc );
+   glVertexArrayAttribFormat( ObjVAO, TextureLoc, 2, GL_FLOAT, GL_FALSE, offset * sizeof(GLfloat) );
+   glVertexArrayAttribBinding( ObjVAO, TextureLoc, 0 );
+   glEnableVertexArrayAttrib( ObjVAO, TextureLoc );
 }
 
-void ObjectGL::prepareNormal(const int& n_bytes_per_vertex) const
+void ObjectGL::prepareNormal() const
 {
-   glVertexAttribPointer( NormalLoc, 3, GL_FLOAT, GL_FALSE, n_bytes_per_vertex, bufferOffset( 3 * sizeof(GLfloat) ) );
-   glEnableVertexAttribArray( NormalLoc );	
+   glVertexArrayAttribFormat( ObjVAO, NormalLoc, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat) );
+   glVertexArrayAttribBinding( ObjVAO, NormalLoc, 0 );
+   glEnableVertexArrayAttrib( ObjVAO, NormalLoc );	
 }
 
 void ObjectGL::prepareVertexBuffer(const int& n_bytes_per_vertex)
 {
-   glGenBuffers( 1, &ObjVBO );
-   glBindBuffer( GL_ARRAY_BUFFER, ObjVBO );
-   glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat) * DataBuffer.size(), DataBuffer.data(), GL_DYNAMIC_DRAW );
-   glBindBuffer( GL_ARRAY_BUFFER, 0 );
+   glCreateBuffers( 1, &ObjVBO );
+   glNamedBufferStorage( ObjVBO, sizeof(GLfloat) * DataBuffer.size(), DataBuffer.data(), GL_DYNAMIC_STORAGE_BIT );
 
-   glGenVertexArrays( 1, &ObjVAO );
-   glBindVertexArray( ObjVAO );
-   glBindBuffer( GL_ARRAY_BUFFER, ObjVBO );
-   glVertexAttribPointer( VertexLoc, 3, GL_FLOAT, GL_FALSE, n_bytes_per_vertex, bufferOffset( 0 ) );
-   glEnableVertexAttribArray( VertexLoc );
-
-   //glBindBuffer( GL_ARRAY_BUFFER, 0 );
-   //glBindVertexArray( 0 );
+   glCreateVertexArrays( 1, &ObjVAO );
+   glVertexArrayVertexBuffer( ObjVAO, 0, ObjVBO, 0, n_bytes_per_vertex );
+   glVertexArrayAttribFormat( ObjVAO, VertexLoc, 3, GL_FLOAT, GL_FALSE, 0 );
+   glVertexArrayAttribBinding( ObjVAO, VertexLoc, 0 );
+   glEnableVertexArrayAttrib( ObjVAO, VertexLoc );
 }
 
 void ObjectGL::setObject(
@@ -300,7 +288,7 @@ void ObjectGL::setObject(
    }
    const int n_bytes_per_vertex = 6 * sizeof(GLfloat);
    prepareVertexBuffer( n_bytes_per_vertex );
-   prepareNormal( n_bytes_per_vertex );
+   prepareNormal();
 }
 
 void ObjectGL::setObject(
@@ -321,7 +309,7 @@ void ObjectGL::setObject(
    }
    const int n_bytes_per_vertex = 5 * sizeof(GLfloat);
    prepareVertexBuffer( n_bytes_per_vertex );
-   prepareTexture( n_bytes_per_vertex, texture_file_name, false );
+   prepareTexture( texture_file_name, false );
 }
 
 void ObjectGL::setObject(
@@ -342,7 +330,7 @@ void ObjectGL::setObject(
    }
    const int n_bytes_per_vertex = 5 * sizeof(GLfloat);
    prepareVertexBuffer( n_bytes_per_vertex );
-   prepareTexture( n_bytes_per_vertex, texture, false );
+   prepareTexture( texture, false );
 }
 
 void ObjectGL::setObject(
@@ -367,8 +355,8 @@ void ObjectGL::setObject(
    }
    const int n_bytes_per_vertex = 8 * sizeof(GLfloat);
    prepareVertexBuffer( n_bytes_per_vertex );
-   prepareNormal( n_bytes_per_vertex );
-   prepareTexture( n_bytes_per_vertex, texture_file_name, true );
+   prepareNormal();
+   prepareTexture( texture_file_name, true );
 }
 
 void ObjectGL::setObject(
@@ -393,8 +381,8 @@ void ObjectGL::setObject(
    }
    const int n_bytes_per_vertex = 8 * sizeof(GLfloat);
    prepareVertexBuffer( n_bytes_per_vertex );
-   prepareNormal( n_bytes_per_vertex );
-   prepareTexture( n_bytes_per_vertex, texture, true );
+   prepareNormal();
+   prepareTexture( texture, true );
 }
 
 bool ObjectGL::readObjectFile(vector<vec3>& vertices, vector<vec3>& normals, vector<vec2>& textures, const path& file_path) const
@@ -459,7 +447,7 @@ void ObjectGL::transferUniformsToShader(ShaderGL& shader)
    glUniform4fv( shader.Location.MaterialSpecular, 1, &SpecularReflectionColor[0] );
    glUniform1f( shader.Location.MaterialSpecularExponent, SpecularReflectionExponent );
 
-   glUniform1i( shader.Location.Texture, TextureID );
+   glUniform1i( shader.Location.Texture, shader.Location.TextureUnit );
 }
 
 void ObjectGL::prepareShaderStorageBuffer()

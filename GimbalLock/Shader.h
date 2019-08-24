@@ -30,12 +30,12 @@ public:
    {
       GLint World, View, Projection, ModelViewProjection;
       GLint MaterialEmission, MaterialAmbient, MaterialDiffuse, MaterialSpecular, MaterialSpecularExponent;
-      GLint Texture;
+      GLint TextureUnit, Texture;
       GLint UseLight, LightNum, GlobalAmbient;
       vector<LightLocationSet> Lights;
       LocationSet() : World( 0 ), View( 0 ), Projection( 0 ), ModelViewProjection( 0 ), MaterialEmission( 0 ),
       MaterialAmbient( 0 ), MaterialDiffuse( 0 ), MaterialSpecular( 0 ), MaterialSpecularExponent( 0 ), 
-      Texture( 0 ), UseLight( 0 ), LightNum( 0 ), GlobalAmbient( 0 ) {}
+      TextureUnit( 0 ), Texture( 0 ), UseLight( 0 ), LightNum( 0 ), GlobalAmbient( 0 ) {}
    };
    
    LocationSet Location;

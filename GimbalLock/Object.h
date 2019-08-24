@@ -70,22 +70,13 @@ class ObjectGL
    vector<GLfloat> DataBuffer; // 3 for vertex, 3 for normal, and 2 for texture
 
    void prepareTexture2DFromMat(const Mat& texture) const;
-   void prepareTexture(
-      const int& n_bytes_per_vertex, 
-      const Mat& texture, 
-      const bool& normals_exist
-   );
+   void prepareTexture(const Mat& texture, const bool& normals_exist);
    
    void prepareTexture2DFromFile(const string& file_name) const;
-   void prepareTexture(
-      const int& n_bytes_per_vertex, 
-      const string& texture_file_name, 
-      const bool& normals_exist
-   );
+   void prepareTexture(const string& texture_file_name, const bool& normals_exist);
 
    void prepareVertexBuffer(const int& n_bytes_per_vertex);
-   void prepareNormal(const int& n_bytes_per_vertex) const;
-   GLvoid* bufferOffset(uint offset) const { return reinterpret_cast<GLvoid *>(offset); }
+   void prepareNormal() const;
 
 public:
    enum LayoutLocation { VertexLoc=0, NormalLoc, TextureLoc };
