@@ -10,15 +10,6 @@ The rotation from Euler Angle causes the *Gimbal Lock* problem.
 
 
 
-## Test Environment
-  * Windows 10
-  * Visual Studio 2017
-  * Surface Book 2
-  
-## Library Dependencies
-  * OpenCV (not used)
-  * OpenGL
-
 ## Keyboard Commands
   * **l key**: toggle light effects
   * **c key**: capture the current frame
