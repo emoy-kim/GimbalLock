@@ -98,7 +98,7 @@ void RendererGL::keyboard(GLFWwindow* window, int key, int scancode, int action,
       case GLFW_KEY_C:
          captureFrame();
          break;
-      case GLFW_KEY_E:
+      case GLFW_KEY_P:
          if (!Animator.AnimationMode && CapturedFrameIndex == static_cast<int>(CapturedEulerAngles.size())) {
             Animator.StartTiming = glfwGetTime() * 1000.0;
             Animator.AnimationMode = true;
@@ -115,10 +115,6 @@ void RendererGL::keyboard(GLFWwindow* window, int key, int scancode, int action,
          Lights->toggleLightSwitch();
          std::cout << "Light Turned " << (Lights->isLightOn() ? "On!\n" : "Off!\n");
          break;
-      case GLFW_KEY_P: {
-         const glm::vec3 pos = MainCamera->getCameraPosition();
-         std::cout << "Camera Position: " << pos.x << ", " << pos.y << ", " << pos.z << "\n";
-      } break;
       case GLFW_KEY_Q:
       case GLFW_KEY_ESCAPE:
          cleanupWrapper( window );
