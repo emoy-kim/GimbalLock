@@ -30,7 +30,6 @@ std::string ShaderGL::getShaderTypeString(GLenum shader_type)
    switch (shader_type) {
       case GL_VERTEX_SHADER: return "Vertex Shader";
       case GL_FRAGMENT_SHADER: return "Fragment Shader";
-      case GL_GEOMETRY_SHADER: return "Geometry Shader";
       default: return "";
    }
 }
@@ -72,44 +71,16 @@ GLuint ShaderGL::getCompiledShader(GLenum shader_type, const char* shader_path)
    return shader;
 }
 
-void ShaderGL::setShader(
-   const char* vertex_shader_path,
-   const char* fragment_shader_path,
-   const char* geometry_shader_path,
-   const char* tessellation_control_shader_path,
-   const char* tessellation_evaluation_shader_path
-)
+void ShaderGL::setShader(const char* vertex_shader_path, const char* fragment_shader_path)
 {
    const GLuint vertex_shader = getCompiledShader( GL_VERTEX_SHADER, vertex_shader_path );
    const GLuint fragment_shader = getCompiledShader( GL_FRAGMENT_SHADER, fragment_shader_path );
-   const GLuint geometry_shader = getCompiledShader( GL_GEOMETRY_SHADER, geometry_shader_path );
-   const GLuint tessellation_control_shader = getCompiledShader( GL_TESS_CONTROL_SHADER, tessellation_control_shader_path );
-   const GLuint tessellation_evaluation_shader = getCompiledShader( GL_TESS_EVALUATION_SHADER, tessellation_evaluation_shader_path );
    ShaderProgram = glCreateProgram();
    glAttachShader( ShaderProgram, vertex_shader );
    glAttachShader( ShaderProgram, fragment_shader );
-   if (geometry_shader != 0) glAttachShader( ShaderProgram, geometry_shader );
-   if (tessellation_control_shader != 0) glAttachShader( ShaderProgram, tessellation_control_shader );
-   if (tessellation_evaluation_shader != 0) glAttachShader( ShaderProgram, tessellation_evaluation_shader );
    glLinkProgram( ShaderProgram );
    glDeleteShader( vertex_shader );
    glDeleteShader( fragment_shader );
-   if (geometry_shader != 0) glDeleteShader( geometry_shader );
-   if (tessellation_control_shader != 0) glDeleteShader( tessellation_control_shader );
-   if (tessellation_evaluation_shader != 0) glDeleteShader( tessellation_evaluation_shader );
-}
-
-void ShaderGL::setComputeShaders(const std::vector<const char*>& compute_shader_paths)
-{
-   ComputeShaderPrograms.clear();
-   ComputeShaderPrograms.resize( compute_shader_paths.size() );
-   for (size_t i = 0; i < ComputeShaderPrograms.size(); ++i) {
-      const GLuint compute_shader = getCompiledShader( GL_COMPUTE_SHADER, compute_shader_paths[i] );
-      ComputeShaderPrograms[i] = glCreateProgram();
-      glAttachShader( ComputeShaderPrograms[i], compute_shader );
-      glLinkProgram( ComputeShaderPrograms[i] );
-      glDeleteShader( compute_shader );
-   }
 }
 
 void ShaderGL::setBasicTransformationUniforms()
@@ -118,50 +89,10 @@ void ShaderGL::setBasicTransformationUniforms()
    Location.View = glGetUniformLocation( ShaderProgram, "ViewMatrix" );
    Location.Projection = glGetUniformLocation( ShaderProgram, "ProjectionMatrix" );
    Location.ModelViewProjection = glGetUniformLocation( ShaderProgram, "ModelViewProjectionMatrix" );
+   Location.Color = glGetUniformLocation( ShaderProgram, "Color" );
 }
 
-void ShaderGL::setUniformLocations(int light_num)
-{
-   setBasicTransformationUniforms();
-
-   Location.MaterialEmission = glGetUniformLocation( ShaderProgram, "Material.EmissionColor" );
-   Location.MaterialAmbient = glGetUniformLocation( ShaderProgram, "Material.AmbientColor" );
-   Location.MaterialDiffuse = glGetUniformLocation( ShaderProgram, "Material.DiffuseColor" );
-   Location.MaterialSpecular = glGetUniformLocation( ShaderProgram, "Material.SpecularColor" );
-   Location.MaterialSpecularExponent = glGetUniformLocation( ShaderProgram, "Material.SpecularExponent" );
-
-   Location.Texture[0] = glGetUniformLocation( ShaderProgram, "BaseTexture" );
-   Location.UseTexture = glGetUniformLocation( ShaderProgram, "UseTexture" );
-
-   Location.UseLight = glGetUniformLocation( ShaderProgram, "UseLight" );
-   Location.LightNum = glGetUniformLocation( ShaderProgram, "LightNum" );
-   Location.GlobalAmbient = glGetUniformLocation( ShaderProgram, "GlobalAmbient" );
-
-   Location.Lights.resize( light_num );
-   for (int i = 0; i < light_num; ++i) {
-      Location.Lights[i].LightSwitch = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].LightSwitch").c_str() );
-      Location.Lights[i].LightPosition = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].Position").c_str() );
-      Location.Lights[i].LightAmbient = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].AmbientColor").c_str() );
-      Location.Lights[i].LightDiffuse = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].DiffuseColor").c_str() );
-      Location.Lights[i].LightSpecular = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].SpecularColor").c_str() );
-      Location.Lights[i].SpotlightDirection = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].SpotlightDirection").c_str() );
-      Location.Lights[i].SpotlightExponent = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].SpotlightExponent").c_str() );
-      Location.Lights[i].SpotlightCutoffAngle = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].SpotlightCutoffAngle").c_str() );
-      Location.Lights[i].LightAttenuationFactors = glGetUniformLocation( ShaderProgram, std::string("Lights[" + std::to_string( i ) + "].AttenuationFactors").c_str() );
-   }
-}
-
-void ShaderGL::addUniformLocation(const std::string& name)
-{
-   CustomLocations[name] = glGetUniformLocation( ShaderProgram, name.c_str() );
-}
-
-void ShaderGL::addUniformLocationToComputeShader(const std::string& name, int shader_index)
-{
-   CustomLocations[name] = glGetUniformLocation( ComputeShaderPrograms[shader_index], name.c_str() );
-}
-
-void ShaderGL::transferBasicTransformationUniforms(const glm::mat4& to_world, const CameraGL* camera, bool use_texture) const
+void ShaderGL::transferBasicTransformationUniforms(const glm::mat4& to_world, const CameraGL* camera, const glm::vec4& color) const
 {
    const glm::mat4 view = camera->getViewMatrix();
    const glm::mat4 projection = camera->getProjectionMatrix();
@@ -170,9 +101,5 @@ void ShaderGL::transferBasicTransformationUniforms(const glm::mat4& to_world, co
    glUniformMatrix4fv( Location.View, 1, GL_FALSE, &view[0][0] );
    glUniformMatrix4fv( Location.Projection, 1, GL_FALSE, &projection[0][0] );
    glUniformMatrix4fv( Location.ModelViewProjection, 1, GL_FALSE, &model_view_projection[0][0] );
-
-   for (const auto& texture : Location.Texture) {
-      glUniform1i( texture.second, texture.first );
-   }
-   glUniform1i( Location.UseTexture, use_texture ? 1 : 0 );
+   glUniform4fv( Location.Color, 1, &color[0] );
 }

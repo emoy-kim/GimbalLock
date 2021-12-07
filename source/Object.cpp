@@ -2,10 +2,7 @@
 
 ObjectGL::ObjectGL() :
    ImageBuffer( nullptr ), VAO( 0 ), VBO( 0 ), DrawMode( 0 ), VerticesCount( 0 ),
-   EmissionColor( 0.0f, 0.0f, 0.0f, 1.0f ),
-   AmbientReflectionColor( 0.2f, 0.2f, 0.2f, 1.0f ),
-   DiffuseReflectionColor( 0.8f, 0.8f, 0.8f, 1.0f ),
-   SpecularReflectionColor( 0.0f, 0.0f, 0.0f, 1.0f ), SpecularReflectionExponent( 0.0f )
+   DiffuseReflectionColor( 0.8f, 0.8f, 0.8f, 1.0f )
 {
 }
 
@@ -24,29 +21,9 @@ ObjectGL::~ObjectGL()
    delete [] ImageBuffer;
 }
 
-void ObjectGL::setEmissionColor(const glm::vec4& emission_color)
-{
-   EmissionColor = emission_color;
-}
-
-void ObjectGL::setAmbientReflectionColor(const glm::vec4& ambient_reflection_color)
-{
-   AmbientReflectionColor = ambient_reflection_color;
-}
-
 void ObjectGL::setDiffuseReflectionColor(const glm::vec4& diffuse_reflection_color)
 {
    DiffuseReflectionColor = diffuse_reflection_color;
-}
-
-void ObjectGL::setSpecularReflectionColor(const glm::vec4& specular_reflection_color)
-{
-   SpecularReflectionColor = specular_reflection_color;
-}
-
-void ObjectGL::setSpecularReflectionExponent(const float& specular_reflection_exponent)
-{
-   SpecularReflectionExponent = specular_reflection_exponent;
 }
 
 bool ObjectGL::prepareTexture2DUsingFreeImage(const std::string& file_path, bool is_grayscale) const
@@ -316,15 +293,6 @@ void ObjectGL::setSquareObject(
    std::vector<glm::vec2> square_textures;
    getSquareObject( square_vertices, square_normals, square_textures );
    setObject( draw_mode, square_vertices, square_normals, square_textures, texture_file_path, is_grayscale );
-}
-
-void ObjectGL::transferUniformsToShader(const ShaderGL* shader)
-{
-   glUniform4fv( shader->getMaterialEmissionLocation(), 1, &EmissionColor[0] );
-   glUniform4fv( shader->getMaterialAmbientLocation(), 1, &AmbientReflectionColor[0] );
-   glUniform4fv( shader->getMaterialDiffuseLocation(), 1, &DiffuseReflectionColor[0] );
-   glUniform4fv( shader->getMaterialSpecularLocation(), 1, &SpecularReflectionColor[0] );
-   glUniform1f( shader->getMaterialSpecularExponentLocation(), SpecularReflectionExponent );
 }
 
 void ObjectGL::updateDataBuffer(const std::vector<glm::vec3>& vertices, const std::vector<glm::vec3>& normals)

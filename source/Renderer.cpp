@@ -1,21 +1,20 @@
 #include "Renderer.h"
 
 RendererGL::RendererGL() : 
-   Window( nullptr ), FrameWidth( 1920 ), FrameHeight( 1080 ), CapturedFrameIndex( 0 ), CapturedEulerAngles( 5 ),
-   CapturedQuaternions( 5 ), EulerAngle( 0.0f, 0.0f, 0.0f ), ClickedPoint( -1, -1 ),
-   MainCamera( std::make_unique<CameraGL>() ), ObjectShader( std::make_unique<ShaderGL>() ),
-   AxisObject( std::make_unique<ObjectGL>() ), TeapotObject( std::make_unique<ObjectGL>() ),
-   Lights( std::make_unique<LightGL>() )
+   Window( nullptr ), FrameWidth( 1920 ), FrameHeight( 1080 ),
+   ObjectShader( std::make_unique<ShaderGL>() ), AxisObject( std::make_unique<ObjectGL>() ),
+   TeapotObject( std::make_unique<ObjectGL>() )
 {
-   Renderer = this;
+   ClickedPoint = { -1, -1 };
+   MainCamera = std::make_unique<CameraGL>();
+   EulerAngle = {};
+   CapturedFrameIndex = 0;
+   CapturedEulerAngles.resize( 5 );
+   CapturedQuaternions.resize( 5 );
+   Animator = std::make_unique<Animation>();
 
    initialize();
    printOpenGLInformation();
-}
-
-RendererGL::~RendererGL()
-{
-   glfwTerminate();
 }
 
 void RendererGL::printOpenGLInformation()
@@ -40,6 +39,7 @@ void RendererGL::initialize()
    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
    Window = glfwCreateWindow( FrameWidth, FrameHeight, "Main Camera", nullptr, nullptr );
+   glfwSetWindowUserPointer( Window, this );
    glfwMakeContextCurrent( Window );
 
    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -61,24 +61,10 @@ void RendererGL::initialize()
    );
 }
 
-void RendererGL::error(int error, const char* description) const
-{
-   puts( description );
-}
-
-void RendererGL::errorWrapper(int error, const char* description)
-{
-   Renderer->error( error, description );
-}
-
 void RendererGL::cleanup(GLFWwindow* window)
 {
-   glfwSetWindowShouldClose( window, GLFW_TRUE );
-}
-
-void RendererGL::cleanupWrapper(GLFWwindow* window)
-{
-   Renderer->cleanup( window );
+   auto renderer = reinterpret_cast<RendererGL*>(glfwGetWindowUserPointer( window ));
+   glfwSetWindowShouldClose( renderer->Window, GLFW_TRUE );
 }
 
 void RendererGL::captureFrame()
@@ -99,9 +85,9 @@ void RendererGL::keyboard(GLFWwindow* window, int key, int scancode, int action,
          captureFrame();
          break;
       case GLFW_KEY_P:
-         if (!Animator.AnimationMode && CapturedFrameIndex == static_cast<int>(CapturedEulerAngles.size())) {
-            Animator.StartTiming = glfwGetTime() * 1000.0;
-            Animator.AnimationMode = true;
+         if (!Animator->AnimationMode && CapturedFrameIndex == static_cast<int>(CapturedEulerAngles.size())) {
+            Animator->StartTiming = glfwGetTime() * 1000.0;
+            Animator->AnimationMode = true;
          }
          break;
       case GLFW_KEY_R:
@@ -111,22 +97,13 @@ void RendererGL::keyboard(GLFWwindow* window, int key, int scancode, int action,
          CapturedEulerAngles.resize( 5 );
          CapturedQuaternions.resize( 5 );
          break;
-      case GLFW_KEY_L:
-         Lights->toggleLightSwitch();
-         std::cout << "Light Turned " << (Lights->isLightOn() ? "On!\n" : "Off!\n");
-         break;
       case GLFW_KEY_Q:
       case GLFW_KEY_ESCAPE:
-         cleanupWrapper( window );
+         cleanup( window );
          break;
       default:
          return;
    }
-}
-
-void RendererGL::keyboardWrapper(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-   Renderer->keyboard( window, key, scancode, action, mods );
 }
 
 void RendererGL::cursor(GLFWwindow* window, double xpos, double ypos)
@@ -137,12 +114,13 @@ void RendererGL::cursor(GLFWwindow* window, double xpos, double ypos)
       const int dx = x - ClickedPoint.x;
       const int dy = y - ClickedPoint.y;
 
-      if (glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS) {
+      auto renderer = reinterpret_cast<RendererGL*>(glfwGetWindowUserPointer( window ));
+      if (glfwGetMouseButton( renderer->Window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS) {
          EulerAngle.y += static_cast<float>(dx) * 0.01f;
          if (EulerAngle.y >= 360.0f) EulerAngle.y -= 360.0f;
       }
 
-      if (glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS) {
+      if (glfwGetMouseButton( renderer->Window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS) {
          EulerAngle.x += static_cast<float>(dy) * 0.01f;
          if (EulerAngle.x >= 360.0f) EulerAngle.x -= 360.0f;
       }
@@ -152,18 +130,14 @@ void RendererGL::cursor(GLFWwindow* window, double xpos, double ypos)
    }
 }
 
-void RendererGL::cursorWrapper(GLFWwindow* window, double xpos, double ypos)
-{
-   Renderer->cursor( window, xpos, ypos );
-}
-
 void RendererGL::mouse(GLFWwindow* window, int button, int action, int mods)
 {
    if (button == GLFW_MOUSE_BUTTON_LEFT) {
       const bool moving_state = action == GLFW_PRESS;
       if (moving_state) {
          double x, y;
-         glfwGetCursorPos( window, &x, &y );
+         auto renderer = reinterpret_cast<RendererGL*>(glfwGetWindowUserPointer( window ));
+         glfwGetCursorPos( renderer->Window, &x, &y );
          ClickedPoint.x = static_cast<int>(round( x ));
          ClickedPoint.y = static_cast<int>(round( y ));
       }
@@ -171,68 +145,19 @@ void RendererGL::mouse(GLFWwindow* window, int button, int action, int mods)
    }
 }
 
-void RendererGL::mouseWrapper(GLFWwindow* window, int button, int action, int mods)
-{
-   Renderer->mouse( window, button, action, mods );
-}
-
-void RendererGL::mousewheel(GLFWwindow* window, double xoffset, double yoffset) const
-{
-   if (yoffset >= 0.0) MainCamera->zoomIn();
-   else MainCamera->zoomOut();
-}
-
-void RendererGL::mousewheelWrapper(GLFWwindow* window, double xoffset, double yoffset)
-{
-   Renderer->mousewheel( window, xoffset, yoffset );
-}
-
-void RendererGL::reshape(GLFWwindow* window, int width, int height) const
+void RendererGL::reshape(GLFWwindow* window, int width, int height)
 {
    MainCamera->updateWindowSize( width, height );
    glViewport( 0, 0, width, height );
 }
 
-void RendererGL::reshapeWrapper(GLFWwindow* window, int width, int height)
-{
-   Renderer->reshape( window, width, height );
-}
-
 void RendererGL::registerCallbacks() const
 {
-   glfwSetErrorCallback( errorWrapper );
-   glfwSetWindowCloseCallback( Window, cleanupWrapper );
-   glfwSetKeyCallback( Window, keyboardWrapper );
-   glfwSetCursorPosCallback( Window, cursorWrapper );
-   glfwSetMouseButtonCallback( Window, mouseWrapper );
-   glfwSetScrollCallback( Window, mousewheelWrapper );
-   glfwSetFramebufferSizeCallback( Window, reshapeWrapper );
-}
-
-void RendererGL::setLights() const
-{  
-   glm::vec4 light_position(10.0f, 150.0f, 10.0f, 1.0f);
-   glm::vec4 ambient_color(0.9f, 0.9f, 0.9f, 1.0f);
-   glm::vec4 diffuse_color(0.9f, 0.9f, 0.9f, 1.0f);
-   glm::vec4 specular_color(0.9f, 0.9f, 0.9f, 1.0f);
-   Lights->addLight( light_position, ambient_color, diffuse_color, specular_color );
-
-   light_position = glm::vec4(7.0f, 100.0f, 7.0f, 1.0f);
-   ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-   diffuse_color = glm::vec4(0.0f, 0.47f, 0.75f, 1.0f);
-   specular_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-   glm::vec3 spotlight_direction(0.0f, -1.0f, 0.0f);
-   constexpr float spotlight_exponent = 128;
-   constexpr float spotlight_cutoff_angle_in_degree = 7.0f;
-   Lights->addLight( 
-      light_position, 
-      ambient_color, 
-      diffuse_color, 
-      specular_color,
-      spotlight_direction,
-      spotlight_exponent,
-      spotlight_cutoff_angle_in_degree
-   );  
+   glfwSetWindowCloseCallback( Window, cleanup );
+   glfwSetKeyCallback( Window, keyboard );
+   glfwSetCursorPosCallback( Window, cursor );
+   glfwSetMouseButtonCallback( Window, mouse );
+   glfwSetFramebufferSizeCallback( Window, reshape );
 }
 
 void RendererGL::setAxisObject() const
@@ -252,7 +177,7 @@ void RendererGL::setTeapotObject() const
       teapot_vertices, 
       teapot_normals, 
       teapot_textures, 
-      std::string(sample_directory_path + "/teapot.obj").c_str() 
+      std::string(sample_directory_path + "/teapot.obj")
    );
    
    TeapotObject->setObject( GL_TRIANGLES, teapot_vertices, teapot_normals );
@@ -260,48 +185,31 @@ void RendererGL::setTeapotObject() const
 
 void RendererGL::drawAxisObject(float scale_factor) const
 {
-   const bool origin_light_status = Lights->isLightOn();
-   if (origin_light_status) Lights->toggleLightSwitch();
-   
    glUseProgram( ObjectShader->getShaderProgram() );
    glLineWidth( 5.0f );
 
    const glm::mat4 scale_matrix = scale(glm::mat4(1.0f), glm::vec3(scale_factor) );
    glm::mat4 to_world = scale_matrix;
-   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get() );
-   AxisObject->setDiffuseReflectionColor( { 1.0f, 0.0f, 0.0f, 1.0f } ); 
-   AxisObject->transferUniformsToShader( ObjectShader.get() );
-   Lights->transferUniformsToShader( ObjectShader.get() );
+   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get(), { 1.0f, 0.0f, 0.0f, 1.0f } );
 
    glBindVertexArray( AxisObject->getVAO() );
    glDrawArrays( AxisObject->getDrawMode(), 0, AxisObject->getVertexNum() );
 
-
    to_world = scale_matrix * glm::rotate( glm::mat4(1.0f), glm::radians( 90.0f ), glm::vec3(0.0f, 0.0f, 1.0f) );
-   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get() );
-   AxisObject->setDiffuseReflectionColor( { 0.0f, 1.0f, 0.0f, 1.0f } ); 
-   AxisObject->transferUniformsToShader( ObjectShader.get() );
+   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get(), { 0.0f, 1.0f, 0.0f, 1.0f } );
    glDrawArrays( AxisObject->getDrawMode(), 0, AxisObject->getVertexNum() );
 
-
    to_world = scale_matrix * glm::rotate( glm::mat4(1.0f), glm::radians( -90.0f ), glm::vec3(0.0f, 1.0f, 0.0f) );
-   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get() );
-   AxisObject->setDiffuseReflectionColor( { 0.0f, 0.0f, 1.0f, 1.0f } ); 
-   AxisObject->transferUniformsToShader( ObjectShader.get() );
+   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get(), { 0.0f, 0.0f, 1.0f, 1.0f } );
    glDrawArrays( AxisObject->getDrawMode(), 0, AxisObject->getVertexNum() );
 
    glLineWidth( 1.0f );
-   if (origin_light_status) Lights->toggleLightSwitch();
 }
 
 void RendererGL::drawTeapotObject(const glm::mat4& to_world) const
 {
    glUseProgram( ObjectShader->getShaderProgram() );
-
-   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get() );
-   TeapotObject->transferUniformsToShader( ObjectShader.get() );
-   Lights->transferUniformsToShader( ObjectShader.get() );
-   
+   ObjectShader->transferBasicTransformationUniforms( to_world, MainCamera.get(), TeapotObject->getColor() );
    glBindVertexArray( TeapotObject->getVAO() );
    glDrawArrays( TeapotObject->getDrawMode(), 0, TeapotObject->getVertexNum() );
 }
@@ -311,10 +219,10 @@ void RendererGL::displayEulerAngleMode()
    glViewport( 0, 216, 980, 864 );
    drawAxisObject( 15.0f );
 
-   if (Animator.AnimationMode) {
-      const uint curr = Animator.CurrentFrameIndex;
-      const uint next = (Animator.CurrentFrameIndex + 1) % CapturedEulerAngles.size();
-      const auto t = static_cast<float>(Animator.ElapsedTime / Animator.TimePerSection - curr);
+   if (Animator->AnimationMode) {
+      const uint curr = Animator->CurrentFrameIndex;
+      const uint next = (Animator->CurrentFrameIndex + 1) % CapturedEulerAngles.size();
+      const auto t = static_cast<float>(Animator->ElapsedTime / Animator->TimePerSection - curr);
       EulerAngle = (1 - t) * CapturedEulerAngles[curr] + t * CapturedEulerAngles[next];
    }
    TeapotObject->setDiffuseReflectionColor( { 0.0f, 0.47f, 0.75f, 1.0f } );
@@ -329,10 +237,10 @@ void RendererGL::displayQuaternionMode()
    drawAxisObject( 15.0f );
 
    glm::mat4 to_world;
-   if (Animator.AnimationMode) {
-      const uint curr = Animator.CurrentFrameIndex;
-      const uint next = (Animator.CurrentFrameIndex + 1) % CapturedQuaternions.size();
-      const auto t = static_cast<float>(Animator.ElapsedTime / Animator.TimePerSection - curr);
+   if (Animator->AnimationMode) {
+      const uint curr = Animator->CurrentFrameIndex;
+      const uint next = (Animator->CurrentFrameIndex + 1) % CapturedQuaternions.size();
+      const auto t = static_cast<float>(Animator->ElapsedTime / Animator->TimePerSection - curr);
       to_world = toMat4( slerp( CapturedQuaternions[curr], CapturedQuaternions[next], t ) );
    }
    else to_world = orientate4( EulerAngle );
@@ -348,7 +256,7 @@ void RendererGL::displayCapturedFrames()
       drawAxisObject( 15.0f );
 
       if (i < CapturedFrameIndex) {
-         if (Animator.AnimationMode && i == Animator.CurrentFrameIndex) {
+         if (Animator->AnimationMode && i == Animator->CurrentFrameIndex) {
             TeapotObject->setDiffuseReflectionColor( { 1.0f, 0.7f, 0.0f, 1.0f } );
          }
          else TeapotObject->setDiffuseReflectionColor( { 0.7f, 0.7f, 1.0f, 1.0f } );
@@ -373,15 +281,14 @@ void RendererGL::render()
 
 void RendererGL::update()
 {
-   if (Animator.AnimationMode) {
+   if (Animator->AnimationMode) {
       const double now = glfwGetTime() * 1000.0;
-      Animator.ElapsedTime = now - Animator.StartTiming;
-      if (Animator.ElapsedTime >= Animator.AnimationDuration) {
-         Animator.StartTiming = now;
-         Animator.ElapsedTime = 0.0;
+      Animator->ElapsedTime = now - Animator->StartTiming;
+      if (Animator->ElapsedTime >= Animator->AnimationDuration) {
+         Animator->StartTiming = now;
+         Animator->ElapsedTime = 0.0;
       }
-
-      Animator.CurrentFrameIndex = static_cast<int>(floor( Animator.ElapsedTime / Animator.TimePerSection ));
+      Animator->CurrentFrameIndex = static_cast<int>(std::floor( Animator->ElapsedTime / Animator->TimePerSection ));
    }
 }
 
@@ -389,17 +296,14 @@ void RendererGL::play()
 {
    if (glfwWindowShouldClose( Window )) initialize();
 
-   setLights();
    setAxisObject();
    setTeapotObject();
-   ObjectShader->setUniformLocations( Lights->getTotalLightNum() );
+   ObjectShader->setBasicTransformationUniforms();
 
-   Animator.TimePerSection = Animator.AnimationDuration / CapturedEulerAngles.size();
-
+   Animator->TimePerSection = Animator->AnimationDuration / static_cast<double>(CapturedEulerAngles.size());
    while (!glfwWindowShouldClose( Window )) {
       update();
       render();
-      
       glfwSwapBuffers( Window );
       glfwPollEvents();
    }

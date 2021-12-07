@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(
 	SOURCE_FILES 
 		main.cpp
-		source/Light.cpp
 		source/Camera.cpp
 		source/Object.cpp
 		source/Shader.cpp
